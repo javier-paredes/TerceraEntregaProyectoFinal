@@ -3,7 +3,9 @@ const path = require('path')
 const express = require('express');
 require('../accounts/usuarios')
 const passport = require('passport');
-
+const Ethereal = require('../mensajeria/emailEthereal')
+const productos = require('../api/productosMongo')
+const carrito = require('../api/carritoMongo')
 const routerUsuarios = express.Router();
 
 // LOGIN 
@@ -24,9 +26,11 @@ routerUsuarios.get('/faillogin', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/failLogin.html'))
 })
 
-routerUsuarios.post('/login', passport.authenticate('login', { failureRedirect: '/users/faillogin' }), (req, res) => {
-  
-    res.render('vista', { showLogin: false, showContent: true, bienvenida: req.user.nombre, showBienvenida: true });
+routerUsuarios.post('/login', passport.authenticate('login', { failureRedirect: '/users/faillogin' }), async (req, res) => {
+
+    let listaProductos = await productos.listar()
+    let vistaCarrito = await carrito.listar()
+    res.render('vista', { showLogin: false, showContent: true, vistaCarrito: vistaCarrito, listaProductos: listaProductos, bienvenida: req.user.nombre, showBienvenida: true });
 
 });
 
@@ -43,14 +47,19 @@ routerUsuarios.get('/signup', (req, res) => {
     res.render('register', {})
 })
 
-routerUsuarios.post('/signup', passport.authenticate('signup', { failureRedirect: '/users/failsignup' }), (req, res) => {
-    var user = req.email;
+routerUsuarios.post('/signup', passport.authenticate('signup', { failureRedirect: '/users/failsignup' }), async (req, res) => {
+    var user = req.user;
+    Ethereal.enviarMailLogIn(process.env.GMAIL_USER, req.user)
     console.log(req.user)
-    res.render('vista', { showLogin: false, showContent: true, bienvenida: user.nombre, showBienvenida: true });
+    let listaProductos = await productos.listar()
+    res.render('vista', { showLogin: false, showContent: true, listaProductos: listaProductos, bienvenida: user.nombre, showBienvenida: true });
 })
 
 routerUsuarios.get('/failsignup', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/failSignup.html'))
 })
+
+
+//TODO: hacer del redirect de /login y /signup a una sola pagina para unificar el render
 
 module.exports = routerUsuarios;

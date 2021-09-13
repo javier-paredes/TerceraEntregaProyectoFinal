@@ -4,9 +4,34 @@ const fs = require('fs');
 const app = express();
 const passport = require('passport')
 const handlebars = require('express-handlebars')
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
+require('./loggers/log4js')
+const log4js = require("log4js");
+
+const loggerConsola = log4js.getLogger('consola');
+const loggerError = log4js.getLogger('error');
+
 
 require('./database/connection');
 
+const modoCluster = false // CAMBIAR A TRUE O FALSE SEGUN SE QUIERA O NO ARRANCAR EL CLUSTER
+
+if (modoCluster == true && cluster.isMaster) {
+    loggerConsola.info('num CPUs', numCPUs)
+    loggerConsola.info(`PID MASTER ${process.pid}`)
+    
+
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork(); // creamos un worker para cada cpu
+    }
+
+    // controlamos la salida de los workers
+    cluster.on('exit', worker => {
+        loggerConsola.info('Worker', worker.process.pid, 'murió')        
+    });
+
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -41,11 +66,11 @@ app.use('/users', usuarioRouter);
 
 
 const server = app.listen(process.env.PORT, () => {
-    console.log(`servidor escuchando en http://localhost:${process.env.PORT}`);
+    loggerConsola.info(`servidor escuchando en http://localhost:${process.env.PORT}`)    
 });
 
 // en caso de error, avisar
 server.on('error', error => {
-    console.log('error en el servidor:', error);
+    loggerError.error('error en el servidor:', error);    
 });
 

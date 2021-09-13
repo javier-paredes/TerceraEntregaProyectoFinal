@@ -3,24 +3,29 @@ const express = require('express');
 const bCrypt = require('bCrypt');
 const LocalStrategy = require('passport-local').Strategy;
 const User = require('../models/users')
+require('../loggers/log4js')
+const log4js = require("log4js");
+
+const loggerConsola = log4js.getLogger('consola');
+const loggerError = log4js.getLogger('error');
 
 
 // PASSPORT
 passport.use('signup', new LocalStrategy({
     passReqToCallback: true
 },
-    function (req, username, password, done) {      
+    function (req, username, password, done) {
         findOrCreateUser = function () {
-            console.log('INTENTANDO CREAR USUARIO, busqueda en mongo')
+
             User.findOne({ 'email': username }, function (error, user) {
                 if (error) {
-                    console.log('Error al registrar: ' + error);
+                    loggerError.error('Error al registrar: ' + error);
                     return done(error);
                 }
                 if (user) {
-                    console.log('El usuario ya existe');
+                    loggerConsola.info('El usuario ya existe');
                     return done(null, false,
-                        console.log('El usuario ya existe'));
+                        loggerConsola.info('El usuario ya existe'));
                 } else {
                     var newUser = new User();
                     newUser.email = username;
@@ -33,13 +38,13 @@ passport.use('signup', new LocalStrategy({
 
                     newUser.save(function (err) {
                         if (err) {
-                            console.log('Error al guardar usuario: ' + err);
+                            loggerError.error('Error al guardar usuario: ' + err);
                             throw err;
                         }
-                        console.log('Se registró al usuario con éxito');
+                        loggerConsola.info('Se registró al usuario con éxito')
                         return done(null, newUser);
                     });
-                }                
+                }
             });
         }
         process.nextTick(findOrCreateUser);
@@ -60,14 +65,14 @@ passport.use('login', new LocalStrategy({
                 if (err)
                     return done(err);
                 if (!user) {
-                    console.log('User Not Found with email ' + username);
+                    loggerError.warn('User Not Found with email ' + username)
                     return done(null, false,
-                        console.log('message', 'User Not found.'));
+                        loggerError.warn('message', 'User Not found.'))
                 }
                 if (!isValidPassword(user, password)) {
-                    console.log('Invalid Password');
+                    loggerConsole.warn('Invalid Password');
                     return done(null, false,
-                        console.log('message', 'Invalid Password'));
+                        loggerConsole.warn('message', 'Invalid Password'));
                 }
                 return done(null, user);
             }

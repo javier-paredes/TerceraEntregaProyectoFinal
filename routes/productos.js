@@ -1,7 +1,6 @@
 require('dotenv').config()
 const express = require('express');
 const productos = require('../api/productosMongo')   // BASE DE DATOS DE MONGO
-const app = express();
 
 const routerProductos = express.Router()
 
